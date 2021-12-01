@@ -11,12 +11,16 @@ using fire_server_t = void(__thiscall*)(std::uintptr_t this_ptr, std::uintptr_t 
 auto fire_server = reinterpret_cast<fire_server_t>(0);
 
 const std::uint32_t ARG_STRUCT_SIZE = 0x48;
+const std::string BLACKLISTED_PATH = "Game.RobloxReplicatedStorage.IntegrityCheckProcessorKey_LocalizationTableEntryStatisticsSender_LocalizationService";
 
 void __fastcall fire_server_hook(std::uintptr_t this_ptr, std::uintptr_t edx, std::uintptr_t args, std::uint8_t unk)
 {
+    const auto remote_path = urs::utils::get_instance_path(this_ptr);
+    if (remote_path == BLACKLISTED_PATH) return;
+
     std::printf("---START---\n\n");
 
-    std::printf("FireServer Called: %s\n", urs::utils::get_instance_path(this_ptr).c_str());
+    std::printf("FireServer Called: %s\n", remote_path.c_str());
 
     if (!args)
     {
