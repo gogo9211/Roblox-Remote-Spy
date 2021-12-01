@@ -53,5 +53,8 @@
     <ClInclude Include="utils\offsets\offsets.hpp">
       <Filter>Source Files\utils\offsets</Filter>
     </ClInclude>
+    <ClInclude Include="utils\handlers\arg_handlers.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

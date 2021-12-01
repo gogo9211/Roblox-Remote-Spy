@@ -50,9 +50,33 @@ void __fastcall fire_server_hook(std::uintptr_t this_ptr, std::uintptr_t edx, st
         {
             urs::arg_handlers::read_double(i, arg);
         }
+        else if (std::strcmp(arg_type_name, "bool") == 0)
+        {
+            urs::arg_handlers::read_bool(i, arg);
+        }
+        else if (std::strcmp(arg_type_name, "Vector2") == 0)
+        {
+            urs::arg_handlers::read_vector2(i, arg);
+        }
         else if (std::strcmp(arg_type_name, "Vector3") == 0)
         {
             urs::arg_handlers::read_vector3(i, arg);
+        }
+        else if (std::strcmp(arg_type_name, "CoordinateFrame") == 0)
+        {
+            urs::arg_handlers::read_cframe(i, arg);
+        }
+        else if (std::strcmp(arg_type_name, "Color3") == 0)
+        {
+            urs::arg_handlers::read_color3(i, arg);
+        }
+        else if (std::strcmp(arg_type_name, "Instance") == 0)
+        {
+            urs::arg_handlers::read_instance(i, arg);
+        }
+        else if (std::strcmp(arg_type_name, "Ray") == 0)
+        {
+            urs::arg_handlers::read_ray(i, arg);
         }
         else
         {
