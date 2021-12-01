@@ -1,81 +1,101 @@
-#include <iostream>
 #include "arg_handlers.hpp"
+
+#include <iostream>
+#include <array>
 
 #include "../utils.hpp"
 
-void urs::arg_handlers::read_string(int index, std::uintptr_t arg) {
-    const auto str = urs::utils::read_string(arg + 0x8);
+enum class arg_type : std::uint16_t
+{
+    t_string,
+    t_float,
+    t_int,
+    t_double,
+    t_bool
+};
 
-    std::printf("Arg Value %i: %s\n", index, str.c_str());
-}
+struct type_data
+{
+    const char* name;
+    std::uint32_t arg_amount;
+    arg_type type;
+};
 
-void urs::arg_handlers::read_double(int index, std::uintptr_t arg) {
-    const auto number = *reinterpret_cast<double*>(arg + 0x8);
+auto roblox_types = std::to_array<type_data>
+({
+    {"Vector3", 3, arg_type::t_float},
+    {"Vector2", 2, arg_type::t_float},
+    {"CoordinateFrame", 12, arg_type::t_float},
+    {"string", 1, arg_type::t_string},
+    {"double", 1, arg_type::t_double},
+    {"bool", 1, arg_type::t_bool},
+    {"Color3", 3, arg_type::t_float},
+    {"Ray", 6, arg_type::t_float}
+});
 
-    std::printf("Arg Value %i: %f\n", index, number);
-}
+struct read_data
+{
+    std::uint8_t data[0x30];
+};
 
-void urs::arg_handlers::read_bool(int index, std::uintptr_t arg) {
-    const auto state = *reinterpret_cast<std::uint8_t*>(arg + 0x8);
+using get_type_t = void(*)(std::uintptr_t type, read_data& out);
 
-    std::printf("Arg Value %i: %s\n", index, state ? "true" : "false");
-}
+void urs::arg_handlers::read_arg(std::uint32_t index, std::uintptr_t arg, const char* const arg_type_name)
+{
+    const auto get_value = reinterpret_cast<get_type_t>(*reinterpret_cast<std::uintptr_t*>(*reinterpret_cast<std::uintptr_t*>(arg + 4)));
 
-void urs::arg_handlers::read_vector2(int index, std::uintptr_t arg) {
-    const auto x = *reinterpret_cast<float*>(arg + 0x8);
-    const auto y = *reinterpret_cast<float*>(arg + 0xC);
+    read_data data{ };
 
-    std::printf("Arg Value %i: {%f, %f}\n", index, x, y);
-}
+    get_value(arg + 8, data);
 
-void urs::arg_handlers::read_vector3(int index, std::uintptr_t arg) {
-    const auto x = *reinterpret_cast<float*>(arg + 0x8);
-    const auto y = *reinterpret_cast<float*>(arg + 0xC);
-    const auto z = *reinterpret_cast<float*>(arg + 0x10);
+    const auto element_p = std::find_if(std::begin(roblox_types), std::end(roblox_types), [&](type_data const& type) { return std::strcmp(type.name, arg_type_name) == 0; });
 
-    std::printf("Arg Value %i: {%f, %f, %f}\n", index, x, y, z);
-}
+    if (element_p == std::end(roblox_types))
+    {
+        std::printf("Unsupported Type\n");
 
-void urs::arg_handlers::read_cframe(int index, std::uintptr_t arg) {
-    const auto m11 = *reinterpret_cast<float*>(arg + 0x8);
-    const auto m12 = *reinterpret_cast<float*>(arg + 0xC);
-    const auto m13 = *reinterpret_cast<float*>(arg + 0x10);
-    const auto m21 = *reinterpret_cast<float*>(arg + 0x14);
-    const auto m22 = *reinterpret_cast<float*>(arg + 0x18);
-    const auto m23 = *reinterpret_cast<float*>(arg + 0x1C);
-    const auto m31 = *reinterpret_cast<float*>(arg + 0x20);
-    const auto m32 = *reinterpret_cast<float*>(arg + 0x24);
-    const auto m33 = *reinterpret_cast<float*>(arg + 0x28);
-    const auto x = *reinterpret_cast<float*>(arg + 0x2C);
-    const auto y = *reinterpret_cast<float*>(arg + 0x30);
-    const auto z = *reinterpret_cast<float*>(arg + 0x34);
+        return;
+    }
 
-    std::printf("Arg Value %i: {%f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f}\n", index, x, y, z, m11, m12, m13, m21, m22, m23, m31, m32, m33);
-}
+    std::printf("Arg Value %i: { ", index);
 
-void urs::arg_handlers::read_color3(int index, std::uintptr_t arg) {
-    const auto r = *reinterpret_cast<float*>(arg + 0x8);
-    const auto g = *reinterpret_cast<float*>(arg + 0xC);
-    const auto b = *reinterpret_cast<float*>(arg + 0x10);
+    const auto& element = element_p[0];
 
-    std::printf("Arg Value %i: {%f, %f, %f}\n", index, r, g, b);
-}
+    for (auto i = 0u; i < element.arg_amount; ++i)
+    {
+        const auto spacing = i == element.arg_amount - 1 ? "" : ", ";
 
-void urs::arg_handlers::read_instance(int index, std::uintptr_t arg) {
-    const auto instance = *reinterpret_cast<std::uintptr_t*>(arg + 0x8);
-    const auto name = utils::get_instance_path(instance);
+        if (element.type == arg_type::t_float)
+        {
+            const auto arg = reinterpret_cast<std::uintptr_t>(data.data) + i * sizeof(float);
 
-    std::printf("Arg Value %i: %s\n", index, name.c_str());
-}
+            std::printf("%f%s", *reinterpret_cast<float*>(arg), spacing);
+        }
+        else if (element.type == arg_type::t_string)
+        {
+            const auto arg = reinterpret_cast<std::uintptr_t>(data.data);
 
-void urs::arg_handlers::read_ray(int index, std::uintptr_t arg) {
-    const auto origin_x = *reinterpret_cast<float*>(arg + 0x8);
-    const auto origin_y = *reinterpret_cast<float*>(arg + 0xC);
-    const auto origin_z = *reinterpret_cast<float*>(arg + 0x10);
+            std::printf("%s%s", urs::utils::read_string(arg).c_str(), spacing);
+        }
+        else if (element.type == arg_type::t_int)
+        {
+            const auto arg = reinterpret_cast<std::uintptr_t>(data.data) + i * sizeof(std::uint32_t);
 
-    const auto dir_x = *reinterpret_cast<float*>(arg + 0x14);
-    const auto dir_y = *reinterpret_cast<float*>(arg + 0x18);
-    const auto dir_z = *reinterpret_cast<float*>(arg + 0x1C);
+            std::printf("%i%s", *reinterpret_cast<std::uint32_t*>(arg), spacing);
+        }
+        else if (element.type == arg_type::t_bool)
+        {
+            const auto arg = reinterpret_cast<std::uintptr_t>(data.data) + i * sizeof(std::uint8_t);
 
-    std::printf("Arg Value %i: {%f, %f, %f}, {%f, %f, %f}\n", index, origin_x, origin_y, origin_z, dir_x, dir_y, dir_z);
+            std::printf("%s%s", *reinterpret_cast<std::uint8_t*>(arg) ? "true" : "false", spacing);
+        }
+        else if (element.type == arg_type::t_double)
+        {
+            const auto arg = reinterpret_cast<std::uintptr_t>(data.data) + i * sizeof(double);
+
+            std::printf("%f%s", *reinterpret_cast<double*>(arg), spacing);
+        }
+    }
+
+    std::printf(" }\n");
 }

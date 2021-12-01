@@ -47,9 +47,6 @@
     <ClInclude Include="utils\bypasses\memcheck\memcheck.hpp">
       <Filter>Source Files\utils\bypasses\memcheck</Filter>
     </ClInclude>
-    <ClInclude Include="utils\arg_handlers.hpp">
-      <Filter>Source Files\utils\handlers</Filter>
-    </ClInclude>
     <ClInclude Include="utils\offsets\offsets.hpp">
       <Filter>Source Files\utils\offsets</Filter>
     </ClInclude>
