@@ -10,9 +10,6 @@
 using fire_server_t = void(__thiscall*)(std::uintptr_t this_ptr, std::uintptr_t args, std::uint8_t unk);
 auto fire_server = reinterpret_cast<fire_server_t>(0);
 
-using invoke_server_t = void(__thiscall*)(std::uintptr_t this_ptr, std::uintptr_t args, std::uintptr_t unk1, std::uintptr_t unk2);
-auto invoke_server = reinterpret_cast<invoke_server_t>(0);
-
 const std::uint32_t ARG_STRUCT_SIZE = 0x48;
 const std::string BLACKLISTED_PATH = "Game.RobloxReplicatedStorage.IntegrityCheckProcessorKey_LocalizationTableEntryStatisticsSender_LocalizationService";
 
@@ -79,25 +76,39 @@ void __fastcall fire_server_hook(std::uintptr_t this_ptr, std::uintptr_t edx, st
     return fire_server(this_ptr, args, unk);
 }
 
-void __fastcall invoke_server_hook(std::uintptr_t this_ptr, std::uintptr_t edx, std::uintptr_t args, std::uintptr_t unk1, std::uintptr_t unk2) {
-    //const auto remote_path = urs::utils::get_instance_path(this_ptr);
+std::uintptr_t invoker_server_start;
+std::uintptr_t invoker_server_end;
 
-    std::printf("---START---\n\n");
+//not in the mood of figuring out how roblox push invoke server args so i put ty kind jmp to this stub which will execute the overriden instructions, save registers, then u can do whatevr u want, then we restore and jmp back, no more need to know amount of args etc...
+_declspec(naked) void invoke_server_hook()
+{
+    //u can declare variables here safely, then get the arg u need by doing something like
 
-    /*std::printf("InvokeServer Called: %s\n", remote_path.c_str());
+    /*
+    push eax //save eax
+    mov eax, esp + 8 //mov arg in eax
+    mov locvar, eax, //mov the variable u declared to eax ^^
+    pop eax //restore eax
+    */
 
-    if (!args) {
-        std::printf("Number of Args: 0\n");
-        std::printf("\n---END---\n\n");
+    //when u get the arg here ^^, use it where the printf is, not before or else
 
-        return invoke_server(this_ptr, args, unk);
+    __asm
+    {
+        push ebx
+        mov ebx, esp
+        sub esp, 8
+
+        pushad
     }
 
-    handle_vector(args);
+    std::printf("Invoker Server Called\n");
 
-    std::printf("\n---END---\n\n");*/
-
-    return invoke_server(this_ptr, args, unk1, unk2);
+    __asm
+    {
+        popad
+        jmp invoker_server_end
+    }
 }
 
 void d_main()
@@ -119,7 +130,20 @@ void d_main()
     memcheck::bypass();
 
     fire_server = reinterpret_cast<fire_server_t>(urs::utils::tramp_hook(urs::offsets::fire_server_address, reinterpret_cast<std::uintptr_t>(fire_server_hook), 6));
-    invoke_server = reinterpret_cast<invoke_server_t>(urs::utils::tramp_hook(urs::offsets::invoke_server_address, reinterpret_cast<std::uintptr_t>(invoke_server_hook), 6));
+
+    invoker_server_start = urs::offsets::invoke_server_address;
+    invoker_server_end = invoker_server_start + 0x6;
+
+    DWORD old_protect{};
+
+    VirtualProtect(reinterpret_cast<void*>(invoker_server_start), 0x6, PAGE_EXECUTE_READWRITE, &old_protect);
+
+    std::memset(reinterpret_cast<void*>(invoker_server_start), 0x90, 0x6);
+
+    *reinterpret_cast<std::uint8_t*>(invoker_server_start) = 0xE9;
+    *reinterpret_cast<std::uintptr_t*>(invoker_server_start + 1) = (reinterpret_cast<std::uintptr_t>(invoke_server_hook) - invoker_server_start - 5);
+
+    VirtualProtect(reinterpret_cast<void*>(invoker_server_start), 0x6, old_protect, &old_protect);
 
     std::printf("[URS] FireServer Hooked!\n");
     std::printf("[URS] InvokeServer Hooked!\n\n");
