@@ -11,7 +11,8 @@ enum class arg_type : std::uint16_t
     t_float,
     t_int,
     t_double,
-    t_bool
+    t_bool,
+    t_none
 };
 
 struct type_data
@@ -19,18 +20,20 @@ struct type_data
     const char* name;
     std::uint32_t arg_amount;
     arg_type type;
+    bool special_type;
 };
 
 auto roblox_types = std::to_array<type_data>
 ({
-    {"Vector3", 3, arg_type::t_float},
-    {"Vector2", 2, arg_type::t_float},
-    {"CoordinateFrame", 12, arg_type::t_float},
-    {"string", 1, arg_type::t_string},
-    {"double", 1, arg_type::t_double},
-    {"bool", 1, arg_type::t_bool},
-    {"Color3", 3, arg_type::t_float},
-    {"Ray", 6, arg_type::t_float}
+    {"Vector3", 3, arg_type::t_float, false},
+    {"Vector2", 2, arg_type::t_float, false},
+    {"CoordinateFrame", 12, arg_type::t_float, false},
+    {"string", 1, arg_type::t_string, false},
+    {"double", 1, arg_type::t_double, false},
+    {"bool", 1, arg_type::t_bool, false},
+    {"Color3", 3, arg_type::t_float, false},
+    {"Ray", 6, arg_type::t_float, false},
+    {"Instance", 1, arg_type::t_none, true}
 });
 
 struct read_data
@@ -60,6 +63,22 @@ void urs::arg_handlers::read_arg(std::uint32_t index, std::uintptr_t arg, const 
     std::printf("Arg Value %i: { ", index);
 
     const auto& element = element_p[0];
+
+    if (element.special_type)
+    {
+        if (std::strcmp(element.name, "Instance") == 0)
+        {
+            const auto instance = *reinterpret_cast<std::uintptr_t*>(data.data);
+
+            const auto name = utils::get_instance_path(instance);
+
+            std::printf("%s", name.c_str());
+        }
+
+        std::printf(" }\n");
+        
+        return;
+    }
 
     for (auto i = 0u; i < element.arg_amount; ++i)
     {
