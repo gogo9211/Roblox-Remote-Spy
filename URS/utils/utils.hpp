@@ -2,6 +2,7 @@
 #include <Windows.h>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include <DbgHelp.h>
 
@@ -16,8 +17,12 @@ namespace urs::utils
     std::string read_string(std::uintptr_t str_address);
 
     std::uintptr_t get_instance_parent(std::uintptr_t address);
+
     std::string get_instance_name(std::uintptr_t address);
+
     std::string get_instance_path(std::uintptr_t address);
+
+    std::vector<std::uintptr_t> pattern_scan(const std::string_view& pattern, const std::string_view& mask);
 
     struct segment
     {

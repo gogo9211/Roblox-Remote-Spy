@@ -16,9 +16,6 @@ __declspec(noinline) int empty_func(...);
 #define MEM_DBG(...) empty_func(__VA_ARGS__)
 #endif
 
-// core hasher addresses
-constexpr auto core_hasher_end = 0x211EBB;
-constexpr auto core_hasher = 0x211E2F;
 const auto base = reinterpret_cast<std::uint32_t>(GetModuleHandleA(nullptr));
 
 // silent checker function header
@@ -29,8 +26,8 @@ auto ptr = reinterpret_cast<std::uintptr_t>(&FreeConsole);
 std::uintptr_t ptr_jmp;
 
 // hasher addresses with base applied
-auto memcheck_core = base + core_hasher;
-auto hasher_end = base + core_hasher_end;
+inline std::uintptr_t memcheck_core = 0;
+inline std::uintptr_t hasher_end = 0;
 
 // set stack on call, otherwise will kick
 // disable optimization and add noinline attribute to prevent it from not generating function
@@ -121,7 +118,7 @@ __declspec(naked) std::uintptr_t stub()
 {
     __asm
     {
-        mov edx, 0x5B3F9D59
+        mov edx, 0x00000000
         mov edx, esp
         pop edx
 
@@ -231,6 +228,19 @@ namespace memcheck
                 }
             }
         }
+
+        memcheck_core = urs::utils::pattern_scan("\x8B\xD4\x5A\x8B\x64\x24\x08\x8B\x5D\xF0", "xxxxxxxxxx").back() - 5;
+        hasher_end = memcheck_core + 0x8C;
+
+        const auto stub_addy = reinterpret_cast<std::uintptr_t>(&stub);
+
+        DWORD old_s{};
+
+        VirtualProtect(reinterpret_cast<void*>(stub_addy), 5, PAGE_EXECUTE_READWRITE, &old_s);
+
+        *reinterpret_cast<std::uintptr_t*>(stub_addy + 1) = *reinterpret_cast<std::uintptr_t*>(memcheck_core + 1);
+
+        VirtualProtect(reinterpret_cast<void*>(stub_addy), 5, old_s, &old_s);
 
         // clones both .vmp0 and .text segments
         text_clone = clone_section(text.start_addr);

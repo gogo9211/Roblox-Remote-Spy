@@ -69,11 +69,10 @@ void d_main()
 
     std::printf("[URS] Undetected Remote Spy\n\n");
 
+    urs::offsets::init_offsets();
     memcheck::bypass();
 
-    const auto fire_server_address = reinterpret_cast<std::uintptr_t>(GetModuleHandleA(nullptr)) + urs::offsets::fire_server_address;
-
-    fire_server = reinterpret_cast<fire_server_t>(urs::utils::tramp_hook(fire_server_address, reinterpret_cast<std::uintptr_t>(fire_server_hook), 6));
+    fire_server = reinterpret_cast<fire_server_t>(urs::utils::tramp_hook(urs::offsets::fire_server_address, reinterpret_cast<std::uintptr_t>(fire_server_hook), 6));
 
     std::printf("[URS] FireServer Hooked!\n\n");
 }
