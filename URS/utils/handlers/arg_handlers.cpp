@@ -33,7 +33,8 @@ auto roblox_types = std::to_array<type_data>
     {"bool", 1, arg_type::t_bool, false},
     {"Color3", 3, arg_type::t_float, false},
     {"Ray", 6, arg_type::t_float, false},
-    {"Instance", 1, arg_type::t_none, true}
+    {"Instance", 1, arg_type::t_none, true},
+    {"KeyCode", 1, arg_type::t_string, false},
 });
 
 struct read_data

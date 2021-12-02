@@ -13,6 +13,9 @@ auto fire_server = reinterpret_cast<fire_server_t>(0);
 const std::uint32_t ARG_STRUCT_SIZE = 0x48;
 const std::string BLACKLISTED_PATH = "Game.RobloxReplicatedStorage.IntegrityCheckProcessorKey_LocalizationTableEntryStatisticsSender_LocalizationService";
 
+std::uintptr_t invoke_server_start;
+std::uintptr_t invoke_server_end;
+
 // is_deep will determine if the vector is a lua table in the args list (true) or if it is the actual arg list vector (false).
 void handle_vector(std::uintptr_t args, bool is_deep = false)
 {
@@ -76,24 +79,54 @@ void __fastcall fire_server_hook(std::uintptr_t this_ptr, std::uintptr_t edx, st
     return fire_server(this_ptr, args, unk);
 }
 
-std::uintptr_t invoker_server_start;
-std::uintptr_t invoker_server_end;
+void __stdcall invoke_server_hook_stub(std::uintptr_t this_ptr, std::uintptr_t args) {
+    const auto remote_path = urs::utils::get_instance_path(this_ptr);
+    if (remote_path == BLACKLISTED_PATH) {
+        __asm
+        {
+            popad
+            jmp invoke_server_end
+        }
+    };
+
+    std::printf("---START---\n\n");
+
+    std::printf("InvokeServer Called: %s\n", remote_path.c_str());
+
+    if (!args) {
+        std::printf("Number of Args: 0\n");
+        std::printf("\n---END---\n\n");
+
+        __asm
+        {
+            popad
+            jmp invoke_server_end
+        }
+    }
+
+    handle_vector(args);
+
+    std::printf("\n---END---\n\n");
+}
 
 //not in the mood of figuring out how roblox push invoke server args so i put ty kind jmp to this stub which will execute the overriden instructions, save registers, then u can do whatevr u want, then we restore and jmp back, no more need to know amount of args etc...
 _declspec(naked) void invoke_server_hook()
 {
-    //u can declare variables here safely, then get the arg u need by doing something like
+    std::uintptr_t this_ptr;
+    std::uintptr_t args;
 
-    /*
-    push eax //save eax
-    mov eax, esp + 8 //mov arg in eax
-    mov locvar, eax, //mov the variable u declared to eax ^^
-    pop eax //restore eax
-    */
+    __asm {
+        mov this_ptr, ecx
+    }
 
-    //when u get the arg here ^^, use it where the printf is, not before or else
+    __asm {
+        push eax
+        mov eax, [esp + 8]
+        mov args, eax
+        pop eax
+    }
 
-    __asm
+    __asm // Create frame and registers.
     {
         push ebx
         mov ebx, esp
@@ -102,12 +135,12 @@ _declspec(naked) void invoke_server_hook()
         pushad
     }
 
-    std::printf("Invoker Server Called\n");
+    invoke_server_hook_stub(this_ptr, args);
 
-    __asm
+    __asm // Restore registers.
     {
         popad
-        jmp invoker_server_end
+        jmp invoke_server_end
     }
 }
 
@@ -131,19 +164,19 @@ void d_main()
 
     fire_server = reinterpret_cast<fire_server_t>(urs::utils::tramp_hook(urs::offsets::fire_server_address, reinterpret_cast<std::uintptr_t>(fire_server_hook), 6));
 
-    invoker_server_start = urs::offsets::invoke_server_address;
-    invoker_server_end = invoker_server_start + 0x6;
+    invoke_server_start = urs::offsets::invoke_server_address;
+    invoke_server_end = invoke_server_start + 0x6;
 
     DWORD old_protect{};
 
-    VirtualProtect(reinterpret_cast<void*>(invoker_server_start), 0x6, PAGE_EXECUTE_READWRITE, &old_protect);
+    VirtualProtect(reinterpret_cast<void*>(invoke_server_start), 0x6, PAGE_EXECUTE_READWRITE, &old_protect);
 
-    std::memset(reinterpret_cast<void*>(invoker_server_start), 0x90, 0x6);
+    std::memset(reinterpret_cast<void*>(invoke_server_start), 0x90, 0x6);
 
-    *reinterpret_cast<std::uint8_t*>(invoker_server_start) = 0xE9;
-    *reinterpret_cast<std::uintptr_t*>(invoker_server_start + 1) = (reinterpret_cast<std::uintptr_t>(invoke_server_hook) - invoker_server_start - 5);
+    *reinterpret_cast<std::uint8_t*>(invoke_server_start) = 0xE9;
+    *reinterpret_cast<std::uintptr_t*>(invoke_server_start + 1) = (reinterpret_cast<std::uintptr_t>(invoke_server_hook) - invoke_server_start - 5);
 
-    VirtualProtect(reinterpret_cast<void*>(invoker_server_start), 0x6, old_protect, &old_protect);
+    VirtualProtect(reinterpret_cast<void*>(invoke_server_start), 0x6, old_protect, &old_protect);
 
     std::printf("[URS] FireServer Hooked!\n");
     std::printf("[URS] InvokeServer Hooked!\n\n");
