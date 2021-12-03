@@ -35,11 +35,11 @@ void handle_vector(std::uintptr_t args, bool is_deep = false)
         const auto arg = vector_start + (i * ARG_STRUCT_SIZE);
 
         const auto arg_type = *reinterpret_cast<std::uintptr_t*>(arg);
-        const auto arg_type_name = *reinterpret_cast<const char**>(arg_type + 4);
+        const auto arg_type_name = urs::utils::read_string(arg_type + 4);
 
-        std::printf("\nArg Type %i: %s\n", i, arg_type_name);
+        std::printf("\nArg Type %i: %s\n", i, arg_type_name.c_str());
 
-        if (std::strcmp(arg_type_name , "Array") == 0)
+        if (std::strcmp(arg_type_name.c_str(), "Array") == 0)
         {
             const auto vector = *reinterpret_cast<std::uintptr_t*>(arg + 8);
 
@@ -59,7 +59,7 @@ void handle_vector(std::uintptr_t args, bool is_deep = false)
             continue;
         }
 
-        urs::arg_handlers::read_arg(i, arg, arg_type_name);
+        urs::arg_handlers::read_arg(i, arg, arg_type_name.c_str());
     }
 
     if (is_deep)
@@ -69,6 +69,7 @@ void handle_vector(std::uintptr_t args, bool is_deep = false)
 void __fastcall fire_server_hook(std::uintptr_t this_ptr, std::uintptr_t edx, std::uintptr_t args, std::uint8_t unk)
 {
     const auto remote_path = urs::utils::get_instance_path(this_ptr);
+
     if (remote_path == BLACKLISTED_PATH) return;
 
     std::printf("---START---\n\n");
@@ -90,11 +91,11 @@ void __fastcall fire_server_hook(std::uintptr_t this_ptr, std::uintptr_t edx, st
     return fire_server(this_ptr, args, unk);
 }
 
-void __stdcall invoke_server_hook_stub(std::uintptr_t this_ptr, std::uintptr_t args) {
+void __stdcall invoke_server_hook_stub(std::uintptr_t this_ptr, std::uintptr_t args)
+{
     const auto remote_path = urs::utils::get_instance_path(this_ptr);
 
-    if (remote_path == BLACKLISTED_PATH)
-        return;
+    if (remote_path == BLACKLISTED_PATH) return;
 
     std::printf("---START---\n\n");
 
