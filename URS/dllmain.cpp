@@ -48,6 +48,17 @@ void handle_vector(std::uintptr_t args, bool is_deep = false)
             continue;
         }
 
+        if (std::strcmp(*reinterpret_cast<const char**>(arg_type + 0x18), "token") == 0) //Enums
+        {
+            std::printf("Arg Value %i: { ", i);
+
+            std::printf("%i", *reinterpret_cast<std::uint32_t*>(arg + 8));
+
+            std::printf(" }\n");
+
+            continue;
+        }
+
         urs::arg_handlers::read_arg(i, arg, arg_type_name);
     }
 
@@ -81,27 +92,20 @@ void __fastcall fire_server_hook(std::uintptr_t this_ptr, std::uintptr_t edx, st
 
 void __stdcall invoke_server_hook_stub(std::uintptr_t this_ptr, std::uintptr_t args) {
     const auto remote_path = urs::utils::get_instance_path(this_ptr);
-    if (remote_path == BLACKLISTED_PATH) {
-        __asm
-        {
-            popad
-            jmp invoke_server_end
-        }
-    };
+
+    if (remote_path == BLACKLISTED_PATH)
+        return;
 
     std::printf("---START---\n\n");
 
     std::printf("InvokeServer Called: %s\n", remote_path.c_str());
 
-    if (!args) {
+    if (!args)
+    {
         std::printf("Number of Args: 0\n");
         std::printf("\n---END---\n\n");
 
-        __asm
-        {
-            popad
-            jmp invoke_server_end
-        }
+        return;
     }
 
     handle_vector(args);
@@ -115,18 +119,20 @@ _declspec(naked) void invoke_server_hook()
     std::uintptr_t this_ptr;
     std::uintptr_t args;
 
-    __asm {
+    __asm
+    {
         mov this_ptr, ecx
     }
 
-    __asm {
+    __asm
+    {
         push eax
         mov eax, [esp + 8]
         mov args, eax
         pop eax
     }
 
-    __asm // Create frame and registers.
+    __asm //Execute overriden instructions, and save registers.
     {
         push ebx
         mov ebx, esp
