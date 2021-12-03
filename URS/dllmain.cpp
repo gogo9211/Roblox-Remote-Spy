@@ -48,6 +48,17 @@ void handle_vector(std::uintptr_t args, bool is_deep = false)
             continue;
         }
 
+        if (std::strcmp(arg_type_name.c_str(), "void") == 0)
+        {
+            std::printf("Arg Value %i: { ", i);
+
+            std::printf("None");
+
+            std::printf(" }\n");
+
+            continue;
+        }
+
         if (std::strcmp(*reinterpret_cast<const char**>(arg_type + 0x18), "token") == 0) //Enums
         {
             std::printf("Arg Value %i: { ", i);
