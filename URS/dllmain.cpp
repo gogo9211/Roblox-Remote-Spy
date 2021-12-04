@@ -106,8 +106,6 @@ void __stdcall invoke_server_hook_stub(std::uintptr_t this_ptr, std::uintptr_t a
 {
     const auto remote_path = urs::utils::get_instance_path(this_ptr);
 
-    if (remote_path == BLACKLISTED_PATH) return;
-
     std::printf("---START---\n\n");
 
     std::printf("InvokeServer Called: %s\n", remote_path.c_str());
@@ -144,7 +142,7 @@ _declspec(naked) void invoke_server_hook()
         pop eax
     }
 
-    __asm //Execute overriden instructions, and save registers.
+    __asm // Execute overriden instructions, and save registers.
     {
         push ebx
         mov ebx, esp
